@@ -1,0 +1,15 @@
+[general]
+name=Set Layer Transparency
+email=news@geoobserver.de
+author=Mike Elstermann (#geoObserver)
+description=Setzt on bloc die Transparenz aller oder nur markierter Layer auf einen einzugebenden Wert / Sets the transparency of all or only selected layers on bloc to a value to be entered.
+about = (02.09.2025)</br>Setzt on bloc die Transparenz aller oder nur markierter Layer auf einen einzugebenden Wert / Sets the transparency of all or only selected layers on bloc to a value to be entered.
+version=0.1
+qgisMinimumVersion=3.0
+icon=logo.png
+tracker = https://github.com/geoObserver/SetLayerTransparency/issues/
+repository = https://github.com/geoObserver/SetLayerTransparency/
+homepage = https://geoobserver.de/SetLayerTransparency/
+category = Plugins
+changelog = 0.1 ... Initiale Version / Initial version
+	0.2 ... ???

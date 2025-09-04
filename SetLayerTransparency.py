@@ -6,41 +6,14 @@ from qgis.core import QgsProject
 
 plugin_dir = os.path.dirname(__file__)
 
-#class TransparencyDialog(QtWidgets.QDialog):
-#    def __init__(self, parent=None, start_value=50):
-#        super().__init__(parent)
-#        self.setWindowTitle("Set Transparency")
-#        self.setLayout(QtWidgets.QVBoxLayout())
-#
-#        self.label = QtWidgets.QLabel(f"Transparency: {int(start_value)} %")
-#        self.layout().addWidget(self.label)
-#
-#        self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-#        self.slider.setRange(0, 100)
-#        self.slider.setValue(int(start_value))
-#        self.slider.valueChanged.connect(self._update_label)
-#        self.layout().addWidget(self.slider)
-#
-#        buttons = QtWidgets.QDialogButtonBox(
-#            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
-#        )
-#        buttons.accepted.connect(self.accept)
-#        buttons.rejected.connect(self.reject)
-#        self.layout().addWidget(buttons)
-#
-#    def _update_label(self, value):
-#        self.label.setText(f"Transparency: {value} %")
-#
-#    def value(self):
-#        return int(self.slider.value())
 class TransparencyDialog(QtWidgets.QDialog):
     def __init__(self, parent=None, initial_value=50):
         super().__init__(parent)
-        self.setWindowTitle("Transparenz einstellen")
+        self.setWindowTitle("Set Transparency")
         self.setLayout(QtWidgets.QVBoxLayout())
 
         # Label
-        self.label = QtWidgets.QLabel(f"Transparenz: {initial_value} %")
+        self.label = QtWidgets.QLabel(f"Transparency: {initial_value} %")
         self.layout().addWidget(self.label)
 
         # Horizontaler Container für Slider + SpinBox
@@ -135,7 +108,7 @@ class SetLayerTransparency:
         if not all_layers:
             self.iface.messageBar().pushWarning(
                 "Set Layer Transparency",
-                "Keine Layer im Projekt gefunden."
+                "No Layers found in project."
             )
             return
 

@@ -7,10 +7,12 @@ from qgis.core import QgsProject
 plugin_dir = os.path.dirname(__file__)
 
 class TransparencyDialog(QtWidgets.QDialog):
-    def __init__(self, parent=None, initial_value=50):
+    def __init__(self, parent=None, initial_value=50, layers=None, preview_default=False):
         super().__init__(parent)
         self.setWindowTitle("Set Transparency")
         self.setLayout(QtWidgets.QVBoxLayout())
+        self.layers = layers or []
+        self.original_opacities = {lyr: lyr.opacity() for lyr in self.layers}
 
         # Label
         self.label = QtWidgets.QLabel(f"Transparency: {initial_value} %")
@@ -29,29 +31,63 @@ class TransparencyDialog(QtWidgets.QDialog):
         self.spin = QtWidgets.QSpinBox()
         self.spin.setRange(0, 100)
         self.spin.setValue(initial_value)
-        self.slider.setMinimumWidth(250)   # Breite anpassen
+        self.slider.setMinimumWidth(250)
         hbox.addWidget(self.spin)
 
-        # Signale verbinden
+        # Signale
         self.slider.valueChanged.connect(self.spin.setValue)
         self.spin.valueChanged.connect(self.slider.setValue)
         self.slider.valueChanged.connect(self._update_label)
+        self.slider.valueChanged.connect(self._maybe_preview)  # nur wenn Checkbox an
 
         self.layout().addLayout(hbox)
+
+        # Checkbox für Vorschau
+        self.preview_checkbox = QtWidgets.QCheckBox("Live-Preview")
+        self.preview_checkbox.setChecked(preview_default)
+        self.layout().addWidget(self.preview_checkbox)
 
         # OK / Cancel Buttons
         buttons = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
         )
         buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self._restore_original)
         buttons.rejected.connect(self.reject)
         self.layout().addWidget(buttons)
 
     def _update_label(self, value):
-        self.label.setText(f"Transparenz: {value} %")
+        self.label.setText(f"Transparency: {value} %")
+
+    def _maybe_preview(self, value):
+        if self.preview_checkbox.isChecked():
+            self._apply_preview(value)
+
+    def _apply_preview(self, value):
+        opacity_value = 1 - (value / 100.0)
+        for lyr in self.layers:
+            try:
+                lyr.setOpacity(opacity_value)
+                lyr.triggerRepaint()
+            except Exception as e:
+                print(f"Preview Error {getattr(lyr, 'name', lambda: 'unknown')()}: {e}")
+
+    def _restore_original(self):
+        if not self.preview_checkbox.isChecked():
+            return  # nichts zurückzusetzen
+        for lyr, orig_opacity in self.original_opacities.items():
+            try:
+                lyr.setOpacity(orig_opacity)
+                lyr.triggerRepaint()
+            except Exception as e:
+                print(f"Restore Error {getattr(lyr, 'name', lambda: 'unknown')()}: {e}")
 
     def value(self):
         return self.slider.value()
+
+    def preview_enabled(self):
+        return self.preview_checkbox.isChecked()
+
 
 class SetLayerTransparency:
     def __init__(self, iface):
@@ -60,79 +96,62 @@ class SetLayerTransparency:
         self.actions = []
 
     def initGui(self):
-        # Prüfen, ob gemeinsame Toolbar schon existiert
         self.toolbar = self.iface.mainWindow().findChild(QtWidgets.QToolBar, "#geoObserverTools")
         if not self.toolbar:
-            # Nur beim ersten Plugin anlegen
             self.toolbar = self.iface.addToolBar("#geoObserver Tools")
             self.toolbar.setObjectName("#geoObserverTools")
 
-        # Button/Aktion erstellen
         icon = os.path.join(plugin_dir, 'logo.png')
         self.action = QAction(QIcon(icon), 'Set Layer Transparency', self.iface.mainWindow())
         self.action.triggered.connect(self.run)
-
-        # Aktion in gemeinsame Toolbar einfügen
         self.toolbar.addAction(self.action)
         self.actions.append(self.action)
 
     def unload(self):
-        # Nur eigene Buttons entfernen
         for action in self.actions:
             self.toolbar.removeAction(action)
         self.actions.clear()
 
     def run(self):
-        # QSettings für persistente Speicherung
         settings = QtCore.QSettings()
         last_value = settings.value("geoObserver/transparency", 50, type=int)
+        last_preview = settings.value("geoObserver/previewEnabled", False, type=bool)
 
-        # Dialog mit gespeicherten Wert öffnen
-        dlg = TransparencyDialog(self.iface.mainWindow(), last_value)
-
-        if dlg.exec_() != QtWidgets.QDialog.Accepted:
-            print("TransparencyDialog abgebrochen.")
-            return
-
-        transparency_percent = dlg.value()
-        settings.setValue("geoObserver/transparency", int(transparency_percent))
-        settings.sync()
-
-        opacity_value = 1 - (transparency_percent / 100.0)
-
-        # ------------------------------
-        # Layer-Prüfung und Auswahl-Logik
-        # ------------------------------
         all_layers = list(QgsProject.instance().mapLayers().values())
-
         if not all_layers:
-            self.iface.messageBar().pushWarning(
-                "Set Layer Transparency",
-                "No Layers found in project."
-            )
+            self.iface.messageBar().pushWarning("Set Layer Transparency", "No Layers found in project.")
             return
 
         selected_layers = self.iface.layerTreeView().selectedLayers()
-
         if selected_layers:
             target_layers = selected_layers
-            print(f"Set transparency for {len(target_layers)} selected layer(s).")
         else:
             target_layers = all_layers
-            print("No layers selected → applying to ALL layers.")
 
-        # ------------------------------
-        # Transparenz anwenden
-        # ------------------------------
-        for layer in target_layers:
+        dlg = TransparencyDialog(self.iface.mainWindow(), last_value, target_layers, last_preview)
+
+        if dlg.exec_() != QtWidgets.QDialog.Accepted:
+            return
+
+        transparency_percent = dlg.value()
+        preview_enabled = dlg.preview_enabled()
+
+        # Werte speichern
+        settings.setValue("geoObserver/transparency", int(transparency_percent))
+        settings.setValue("geoObserver/previewEnabled", preview_enabled)
+        settings.sync()
+
+        # Final anwenden (immer)
+        opacity_value = 1 - (transparency_percent / 100.0)
+        for lyr in target_layers:
             try:
-                layer.setOpacity(opacity_value)
-                layer.triggerRepaint()
+                lyr.setOpacity(opacity_value)
+                lyr.triggerRepaint()
             except Exception as e:
-                print(f"Layer '{getattr(layer, 'name', lambda: 'unknown')()}': {e}")
+                print(f"Apply Error {getattr(lyr, 'name', lambda: 'unknown')()}: {e}")
 
         self.iface.messageBar().pushSuccess(
             "Set Layer Transparency",
-            f"{len(target_layers)} layer(s) set to {transparency_percent}% transparency "
-            f"(Opacity {opacity_value:.2f}).",
+            f"{len(target_layers)} Layer set to {transparency_percent}% Transparency "
+            f"(Opacity {opacity_value:.2f}, Preview {'On' if preview_enabled else 'Off'})."
         )

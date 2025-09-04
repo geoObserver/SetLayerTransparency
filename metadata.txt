@@ -12,4 +12,4 @@ repository = https://github.com/geoObserver/SetLayerTransparency/
 homepage = https://geoobserver.de/SetLayerTransparency/
 category = Plugins
 changelog = 0.1 ... Initiale Version / Initial version
-	0.2 ... engl. translation, min. code clean up
+	0.2 ... live preview, english translation, mininmal code clean up

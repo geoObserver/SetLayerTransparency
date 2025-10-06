@@ -1,7 +1,5 @@
 import os
-from qgis.PyQt import QtWidgets, QtCore
-from PyQt5.QtWidgets import QAction
-from PyQt5.QtGui import QIcon
+from qgis.PyQt import QtWidgets, QtCore, QtGui
 from qgis.core import QgsProject
 
 plugin_dir = os.path.dirname(__file__)
@@ -21,8 +19,8 @@ class TransparencyDialog(QtWidgets.QDialog):
         # Horizontaler Container für Slider + SpinBox
         hbox = QtWidgets.QHBoxLayout()
 
-        # Slider
-        self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        # Slider (Qt6: Enum-Zugriff über QtCore.Qt.Orientation.Horizontal)
+        self.slider = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal)
         self.slider.setRange(0, 100)
         self.slider.setValue(initial_value)
         hbox.addWidget(self.slider)
@@ -47,14 +45,29 @@ class TransparencyDialog(QtWidgets.QDialog):
         self.preview_checkbox.setChecked(preview_default)
         self.layout().addWidget(self.preview_checkbox)
 
-        # OK / Cancel Buttons
+        # OK / Cancel Buttons (Qt6: Enums ebenfalls unter QtWidgets.QDialogButtonBox.StandardButton)
         buttons = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
+            QtWidgets.QDialogButtonBox.StandardButton.Ok |
+            QtWidgets.QDialogButtonBox.StandardButton.Cancel
         )
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self._restore_original)
         buttons.rejected.connect(self.reject)
         self.layout().addWidget(buttons)
+
+        # Info-Zeile unter den Buttons 
+        info_label = QtWidgets.QLabel()
+        info_label.setTextFormat(QtCore.Qt.TextFormat.RichText)
+        info_label.setTextInteractionFlags(QtCore.Qt.TextInteractionFlag.TextBrowserInteraction)
+        info_label.setOpenExternalLinks(True)
+        info_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        # info_label.setStyleSheet("color: gray; font-size: 10pt; margin-top: 4px;")
+        info_label.setText(
+            'Set Layer Transparency v0.3 (Qt6) &nbsp;–&nbsp; '
+            '<a href="https://geoobserver.de/qgis-plugins/">Other #geoObserver Tools ...</a>'
+        )
+        self.layout().addWidget(info_label)
+
 
     def _update_label(self, value):
         self.label.setText(f"Transparency: {value} %")
@@ -102,7 +115,7 @@ class SetLayerTransparency:
             self.toolbar.setObjectName("#geoObserverTools")
 
         icon = os.path.join(plugin_dir, 'logo.png')
-        self.action = QAction(QIcon(icon), 'Set Layer Transparency', self.iface.mainWindow())
+        self.action = QtGui.QAction(QtGui.QIcon(icon), 'Set Layer Transparency', self.iface.mainWindow())
         self.action.triggered.connect(self.run)
         self.toolbar.addAction(self.action)
         self.actions.append(self.action)
@@ -130,7 +143,8 @@ class SetLayerTransparency:
 
         dlg = TransparencyDialog(self.iface.mainWindow(), last_value, target_layers, last_preview)
 
-        if dlg.exec_() != QtWidgets.QDialog.Accepted:
+        # Qt6: exec_() → exec()
+        if dlg.exec() != QtWidgets.QDialog.DialogCode.Accepted:
             return
 
         transparency_percent = dlg.value()
@@ -141,7 +155,7 @@ class SetLayerTransparency:
         settings.setValue("geoObserver/previewEnabled", preview_enabled)
         settings.sync()
 
-        # Final anwenden (immer)
+        # Final anwenden
         opacity_value = 1 - (transparency_percent / 100.0)
         for lyr in target_layers:
             try:

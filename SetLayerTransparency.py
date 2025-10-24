@@ -113,6 +113,7 @@ class SetLayerTransparency:
         if not self.toolbar:
             self.toolbar = self.iface.addToolBar("#geoObserver Tools")
             self.toolbar.setObjectName("#geoObserverTools")
+            self.toolbar.setToolTip("#geoObserver Tools ...")
 
         icon = os.path.join(plugin_dir, 'logo.png')
         self.action = QtGui.QAction(QtGui.QIcon(icon), 'Set Layer Transparency', self.iface.mainWindow())

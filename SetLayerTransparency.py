@@ -1,3 +1,16 @@
+# -----------------------------------------------------------------------------#
+# Title:       SetLayerTransparency                                            #
+# Author:      Mike Elstermann (#geoObserver)                                  #
+# Version:     v0.4                                                            #
+# Created:     15.10.2025                                                      #
+# Last Change: 25.02.2026                                                      #
+# see also:    https://geoobserver.de/qgis-plugins/                            #
+#                                                                              #
+# This file contains code generated with assistance from an AI                 #
+# No warranty is provided for AI-generated portions.                           #
+# Human review and modification performed by: Mike Elstermann (#geoObserver)   #
+# -----------------------------------------------------------------------------#
+
 import os
 from qgis.PyQt import QtWidgets, QtCore, QtGui
 from qgis.core import QgsProject
@@ -9,6 +22,7 @@ class TransparencyDialog(QtWidgets.QDialog):
         super().__init__(parent)
         self.setWindowTitle("Set Transparency")
         self.setLayout(QtWidgets.QVBoxLayout())
+
         self.layers = layers or []
         self.original_opacities = {lyr: lyr.opacity() for lyr in self.layers}
 
@@ -16,36 +30,34 @@ class TransparencyDialog(QtWidgets.QDialog):
         self.label = QtWidgets.QLabel(f"Transparency: {initial_value} %")
         self.layout().addWidget(self.label)
 
-        # Horizontaler Container für Slider + SpinBox
+        # Horizontal Container for Slider + SpinBox
         hbox = QtWidgets.QHBoxLayout()
 
-        # Slider (Qt6: Enum-Zugriff über QtCore.Qt.Orientation.Horizontal)
         self.slider = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal)
         self.slider.setRange(0, 100)
         self.slider.setValue(initial_value)
+        self.slider.setMinimumWidth(250)
         hbox.addWidget(self.slider)
 
-        # SpinBox
         self.spin = QtWidgets.QSpinBox()
         self.spin.setRange(0, 100)
         self.spin.setValue(initial_value)
-        self.slider.setMinimumWidth(250)
         hbox.addWidget(self.spin)
 
-        # Signale
+        # Signals
         self.slider.valueChanged.connect(self.spin.setValue)
         self.spin.valueChanged.connect(self.slider.setValue)
         self.slider.valueChanged.connect(self._update_label)
-        self.slider.valueChanged.connect(self._maybe_preview)  # nur wenn Checkbox an
+        self.slider.valueChanged.connect(self._maybe_preview)
 
         self.layout().addLayout(hbox)
 
-        # Checkbox für Vorschau
+        # Live-Preview Checkbox
         self.preview_checkbox = QtWidgets.QCheckBox("Live-Preview")
         self.preview_checkbox.setChecked(preview_default)
         self.layout().addWidget(self.preview_checkbox)
 
-        # OK / Cancel Buttons (Qt6: Enums ebenfalls unter QtWidgets.QDialogButtonBox.StandardButton)
+        # OK / Cancel Buttons
         buttons = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.StandardButton.Ok |
             QtWidgets.QDialogButtonBox.StandardButton.Cancel
@@ -55,19 +67,17 @@ class TransparencyDialog(QtWidgets.QDialog):
         buttons.rejected.connect(self.reject)
         self.layout().addWidget(buttons)
 
-        # Info-Zeile unter den Buttons 
+        # Info Label
         info_label = QtWidgets.QLabel()
         info_label.setTextFormat(QtCore.Qt.TextFormat.RichText)
         info_label.setTextInteractionFlags(QtCore.Qt.TextInteractionFlag.TextBrowserInteraction)
         info_label.setOpenExternalLinks(True)
         info_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        # info_label.setStyleSheet("color: gray; font-size: 10pt; margin-top: 4px;")
         info_label.setText(
-            'Set Layer Transparency v0.3 (Qt6) &nbsp;–&nbsp; '
+            'Set Layer Transparency v0.5 (Qt5/6)<br>'
             '<a href="https://geoobserver.de/qgis-plugins/">Other #geoObserver Tools ...</a>'
         )
         self.layout().addWidget(info_label)
-
 
     def _update_label(self, value):
         self.label.setText(f"Transparency: {value} %")
@@ -83,17 +93,19 @@ class TransparencyDialog(QtWidgets.QDialog):
                 lyr.setOpacity(opacity_value)
                 lyr.triggerRepaint()
             except Exception as e:
-                print(f"Preview Error {getattr(lyr, 'name', lambda: 'unknown')()}: {e}")
+                name = getattr(lyr, "name", lambda: "unknown")()
+                print(f"Preview Error {name}: {e}")
 
     def _restore_original(self):
         if not self.preview_checkbox.isChecked():
-            return  # nichts zurückzusetzen
+            return
         for lyr, orig_opacity in self.original_opacities.items():
             try:
                 lyr.setOpacity(orig_opacity)
                 lyr.triggerRepaint()
             except Exception as e:
-                print(f"Restore Error {getattr(lyr, 'name', lambda: 'unknown')()}: {e}")
+                name = getattr(lyr, "name", lambda: "unknown")()
+                print(f"Restore Error {name}: {e}")
 
     def value(self):
         return self.slider.value()
@@ -109,11 +121,11 @@ class SetLayerTransparency:
         self.actions = []
 
     def initGui(self):
-        self.toolbar = self.iface.mainWindow().findChild(QtWidgets.QToolBar, "#geoObserverTools")
+        self.toolbar = self.iface.mainWindow().findChild(QtWidgets.QToolBar, "geoObserverTools")
         if not self.toolbar:
-            self.toolbar = self.iface.addToolBar("#geoObserver Tools")
-            self.toolbar.setObjectName("#geoObserverTools")
-            self.toolbar.setToolTip("#geoObserver Tools ...")
+            self.toolbar = self.iface.addToolBar("geoObserverTools")
+            self.toolbar.setObjectName("geoObserverTools")
+            self.toolbar.setToolTip("geoObserver Tools ...")
 
         icon = os.path.join(plugin_dir, 'logo.png')
         self.action = QtGui.QAction(QtGui.QIcon(icon), 'Set Layer Transparency', self.iface.mainWindow())
@@ -137,33 +149,31 @@ class SetLayerTransparency:
             return
 
         selected_layers = self.iface.layerTreeView().selectedLayers()
-        if selected_layers:
-            target_layers = selected_layers
-        else:
-            target_layers = all_layers
+        target_layers = selected_layers if selected_layers else all_layers
 
         dlg = TransparencyDialog(self.iface.mainWindow(), last_value, target_layers, last_preview)
 
-        # Qt6: exec_() → exec()
+        # exec_ → exec für Qt6
         if dlg.exec() != QtWidgets.QDialog.DialogCode.Accepted:
             return
 
         transparency_percent = dlg.value()
         preview_enabled = dlg.preview_enabled()
 
-        # Werte speichern
+        # Save settings
         settings.setValue("geoObserver/transparency", int(transparency_percent))
         settings.setValue("geoObserver/previewEnabled", preview_enabled)
         settings.sync()
 
-        # Final anwenden
+        # Apply final opacity
         opacity_value = 1 - (transparency_percent / 100.0)
         for lyr in target_layers:
             try:
                 lyr.setOpacity(opacity_value)
                 lyr.triggerRepaint()
             except Exception as e:
-                print(f"Apply Error {getattr(lyr, 'name', lambda: 'unknown')()}: {e}")
+                name = getattr(lyr, "name", lambda: "unknown")()
+                print(f"Apply Error {name}: {e}")
 
         self.iface.messageBar().pushSuccess(
             "Set Layer Transparency",

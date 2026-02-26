@@ -4,8 +4,8 @@ email=news@geoobserver.de
 author=Mike Elstermann (#geoObserver)
 description=Setzt on bloc die Transparenz aller oder nur markierter Layer auf einen einzugebenden Wert / Sets the transparency of all or only selected layers on bloc to a value to be entered.
 about = (06.10.2025)</br>Setzt on bloc die Transparenz aller oder nur markierter Layer auf einen einzugebenden Wert / Sets the transparency of all or only selected layers on bloc to a value to be entered.
-version=0.3.1
-qgisMinimumVersion=3.44
+version=0.4
+qgisMinimumVersion=3.22
 qgisMaximumVersion=4.99
 icon=logo.png
 category = Vector
@@ -19,4 +19,6 @@ changelog = 0.1 ... Initiale Version / Initial version
 	0.2 ... live preview, english translation, minimal code clean up
 	0.3 ... Qt6 compatible
 	0.3.1 ... Qt6 compatible (update qgisMinimumVersion=3.44)
+	0.3.2 ... Fix ToolBox_Name
+	0.4 ... Qt5/Qt6 compatible, Toolbar: geoObserverTools
 

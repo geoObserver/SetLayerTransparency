@@ -1,9 +1,9 @@
 # -----------------------------------------------------------------------------#
 # Title:       SetLayerTransparency                                            #
 # Author:      Mike Elstermann (#geoObserver)                                  #
-# Version:     v0.4                                                            #
+# Version:     v0.5                                                            #
 # Created:     15.10.2025                                                      #
-# Last Change: 25.02.2026                                                      #
+# Last Change: 11.08.2026                                                      #
 # see also:    https://geoobserver.de/qgis-plugins/                            #
 #                                                                              #
 # This file contains code generated with assistance from an AI                 #
@@ -18,7 +18,9 @@ from qgis.core import QgsProject
 plugin_dir = os.path.dirname(__file__)
 
 class TransparencyDialog(QtWidgets.QDialog):
-    def __init__(self, parent=None, initial_value=50, layers=None, preview_default=False):
+    def __init__(
+        self, parent=None, initial_value=50, layers=None, preview_default=False
+    ):
         super().__init__(parent)
         self.setWindowTitle("Set Transparency")
         self.setLayout(QtWidgets.QVBoxLayout())
@@ -59,8 +61,8 @@ class TransparencyDialog(QtWidgets.QDialog):
 
         # OK / Cancel Buttons
         buttons = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.StandardButton.Ok |
-            QtWidgets.QDialogButtonBox.StandardButton.Cancel
+            QtWidgets.QDialogButtonBox.StandardButton.Ok
+            | QtWidgets.QDialogButtonBox.StandardButton.Cancel
         )
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self._restore_original)
@@ -70,11 +72,13 @@ class TransparencyDialog(QtWidgets.QDialog):
         # Info Label
         info_label = QtWidgets.QLabel()
         info_label.setTextFormat(QtCore.Qt.TextFormat.RichText)
-        info_label.setTextInteractionFlags(QtCore.Qt.TextInteractionFlag.TextBrowserInteraction)
+        info_label.setTextInteractionFlags(
+            QtCore.Qt.TextInteractionFlag.TextBrowserInteraction
+        )
         info_label.setOpenExternalLinks(True)
         info_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         info_label.setText(
-            'Set Layer Transparency v0.5 (Qt5/6)<br>'
+            "Set Layer Transparency v0.4 (Qt5/6)<br>"
             '<a href="https://geoobserver.de/qgis-plugins/">Other #geoObserver Tools ...</a>'
         )
         self.layout().addWidget(info_label)
@@ -121,14 +125,20 @@ class SetLayerTransparency:
         self.actions = []
 
     def initGui(self):
-        self.toolbar = self.iface.mainWindow().findChild(QtWidgets.QToolBar, "geoObserverTools")
+        self.toolbar = self.iface.mainWindow().findChild(
+            QtWidgets.QToolBar, "geoObserverTools"
+        )
         if not self.toolbar:
             self.toolbar = self.iface.addToolBar("geoObserverTools")
             self.toolbar.setObjectName("geoObserverTools")
             self.toolbar.setToolTip("geoObserver Tools ...")
 
-        icon = os.path.join(plugin_dir, 'logo.png')
-        self.action = QtGui.QAction(QtGui.QIcon(icon), 'Set Layer Transparency', self.iface.mainWindow())
+        icon = os.path.join(plugin_dir, "logo.svg")
+        self.action = QtGui.QAction(
+            QtGui.QIcon(icon),
+            "Set Layer Transparency",
+            self.iface.mainWindow(),
+        )
         self.action.triggered.connect(self.run)
         self.toolbar.addAction(self.action)
         self.actions.append(self.action)
@@ -141,17 +151,23 @@ class SetLayerTransparency:
     def run(self):
         settings = QtCore.QSettings()
         last_value = settings.value("geoObserver/transparency", 50, type=int)
-        last_preview = settings.value("geoObserver/previewEnabled", False, type=bool)
+        last_preview = settings.value(
+            "geoObserver/previewEnabled", False, type=bool
+        )
 
         all_layers = list(QgsProject.instance().mapLayers().values())
         if not all_layers:
-            self.iface.messageBar().pushWarning("Set Layer Transparency", "No Layers found in project.")
+            self.iface.messageBar().pushWarning(
+                "Set Layer Transparency", "No Layers found in project."
+            )
             return
 
         selected_layers = self.iface.layerTreeView().selectedLayers()
         target_layers = selected_layers if selected_layers else all_layers
 
-        dlg = TransparencyDialog(self.iface.mainWindow(), last_value, target_layers, last_preview)
+        dlg = TransparencyDialog(
+            self.iface.mainWindow(), last_value, target_layers, last_preview
+        )
 
         # exec_ → exec für Qt6
         if dlg.exec() != QtWidgets.QDialog.DialogCode.Accepted:
@@ -161,7 +177,9 @@ class SetLayerTransparency:
         preview_enabled = dlg.preview_enabled()
 
         # Save settings
-        settings.setValue("geoObserver/transparency", int(transparency_percent))
+        settings.setValue(
+            "geoObserver/transparency", int(transparency_percent)
+        )
         settings.setValue("geoObserver/previewEnabled", preview_enabled)
         settings.sync()
 
@@ -178,5 +196,5 @@ class SetLayerTransparency:
         self.iface.messageBar().pushSuccess(
             "Set Layer Transparency",
             f"{len(target_layers)} Layer set to {transparency_percent}% Transparency "
-            f"(Opacity {opacity_value:.2f}, Preview {'On' if preview_enabled else 'Off'})."
+            f"(Opacity {opacity_value:.2f}, Preview {'On' if preview_enabled else 'Off'}).",
         )
